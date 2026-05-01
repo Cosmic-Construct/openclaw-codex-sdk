@@ -1,13 +1,12 @@
-# Codex SDK Runtime
+# OpenClaw Codex SDK Runtime
 
-The `codex-sdk` plugin is OpenClaw's native Codex runtime. It uses the official
-`@openai/codex-sdk` package, registers a `codex-sdk` ACP backend, and wires
-Codex into the normal OpenClaw agent, Gateway, CLI, command, and Control UI
-surfaces.
+`openclaw-codex-sdk` is a standalone OpenClaw plugin that makes Codex a
+first-class OpenClaw ACP runtime. It uses the official `@openai/codex-sdk`,
+registers the public `codex-sdk` backend, and exposes Codex through normal
+OpenClaw agent, chat command, CLI, Gateway, and Control UI descriptor surfaces.
 
-This plugin is standalone. It does not depend on AirLock or Wanda, and it is
-intended to be useful to any OpenClaw operator who wants Codex to power an
-OpenClaw agent.
+It is intentionally separate from AirLock and Wanda so any OpenClaw operator can
+install it, test it, and run Codex as an OpenClaw-native agent.
 
 ## What It Adds
 
@@ -16,39 +15,86 @@ OpenClaw agent.
   `codex-ship`, and `codex-worker`.
 - Persistent Codex sessions with streamed text, tool/status events, attachments,
   event replay, session export, and compatibility records.
-- CLI commands under `openclaw codex ...` for status, route inspection, config
+- CLI commands under `openclaw codex ...` and chat commands under
+  `/codex-sdk ...` for status, routes, config
   validation, doctor checks, one-shot runs, events, exports, and proposal inbox
   management.
-- Gateway RPC methods under `codex.*`.
-- A Control UI `Codex` tab for health, routes, proposal inbox work, execution,
-  recent sessions, and event replay.
-- A bidirectional OpenClaw MCP backchannel injected into Codex turns.
+- Gateway RPC methods under `codex.*` for status, routes, sessions, events,
+  exports, proposals, execution, and doctor checks.
+- A Control UI descriptor that points OpenClaw at the plugin-owned Codex Gateway
+  methods and session surfaces.
+- A bidirectional MCP backchannel injected into Codex turns so Codex can read
+  OpenClaw status, create proposals, and call explicitly allowlisted Gateway
+  methods.
 
-## Authentication
+## Requirements
 
-Codex auth stays with Codex. Sign in once:
+- OpenClaw `2026.4.29` or newer.
+- Node.js `22` or newer.
+- A local Codex login for interactive/operator use:
 
 ```bash
 codex login
 ```
 
-After that, OpenClaw reuses the local Codex CLI/OAuth session through the SDK.
-OpenClaw does not run a second OpenAI Codex OAuth flow for this plugin.
+## Install
 
-For service deployments that intentionally avoid the local Codex login, set the
-plugin `apiKeyEnv` option to the name of an environment variable that contains
-the API key.
+From npm/ClawHub package form:
+
+```bash
+openclaw plugins install openclaw-codex-sdk
+openclaw config set plugins.allow '["codex-sdk"]'
+openclaw codex configure
+openclaw codex config validate
+openclaw codex doctor --record
+```
+
+For local development from this repository:
+
+```bash
+npm install
+openclaw plugins install --link .
+openclaw config set plugins.allow '["codex-sdk"]'
+openclaw codex configure
+openclaw codex config validate
+openclaw codex doctor --record
+```
+
+`openclaw codex configure` sets `acp.backend = "codex-sdk"` and creates a
+first-class `agents.list[]` entry for the `codex` agent.
+
+## Auth And Environment Boundary
+
+Codex auth stays with Codex. After `codex login`, OpenClaw reuses the local
+Codex CLI/OAuth session through the SDK. OpenClaw does not run a second OpenAI
+Codex OAuth flow.
+
+For service deployments that intentionally avoid local Codex login, set
+`apiKeyEnv` to the name of one environment variable that contains the API key.
+That value is passed to the SDK as `apiKey`; it is not copied into the spawned
+Codex process environment.
+
+The plugin does not inherit the Gateway process environment by default:
+
+- `inheritEnv` defaults to `false`.
+- Codex receives only a minimal runtime allowlist such as `PATH`, `HOME`,
+  shell/temp/locale variables, plus explicit plugin `env` entries.
+- If `inheritEnv` is set to `true`, secret-looking inherited names containing
+  terms like `TOKEN`, `SECRET`, `KEY`, `PASSWORD`, `AUTH`, `COOKIE`, `SESSION`,
+  `PRIVATE`, `CREDENTIAL`, or `PROXY` are redacted.
+- Operators can still pass intentional values through explicit plugin `env`.
 
 ## Model And Route Visibility
 
-The plugin passes the configured model and reasoning effort directly into the
-Codex SDK thread options. OpenClaw shows the effective values in three places:
+The plugin passes model and reasoning settings directly into Codex SDK thread
+options. Verify effective values in any of these surfaces:
 
-- Control UI: open the `Codex` tab and inspect `Routes` or `Sessions`.
-- CLI: run `openclaw codex routes` or `openclaw codex sessions`.
-- Gateway RPC: call `codex.routes`, `codex.status`, or `codex.sessions`.
+- Chat: `/codex-sdk routes`
+- CLI: `openclaw codex routes`
+- Gateway RPC: `codex.routes`
+- Control UI descriptor/session surfaces when enabled by the host UI
 
-Example highest-effort route:
+Example high-effort route:
 
 ```bash
 openclaw config set plugins.entries.codex-sdk.config.model gpt-5.5
@@ -60,61 +106,35 @@ openclaw codex routes
 ```
 
 There is no separate OpenClaw "Pro" switch. The model string is forwarded to
-the SDK, and account entitlement remains part of the Codex/OpenAI login. If
-Codex exposes a different model id for a Pro tier, change the `model` string and
-rerun `openclaw codex routes` to verify the effective route.
+Codex, and account entitlement remains part of the Codex/OpenAI login.
 
-## Install From This Repository
+## Smoke Tests
+
+Use an isolated OpenClaw profile so the smoke does not touch your default
+Gateway or any existing AirLock/Wanda profile:
 
 ```bash
-pnpm install
-openclaw plugins install --link ./extensions/codex-sdk
+export OPENCLAW_STATE_DIR=/tmp/openclaw-codex-sdk-smoke/state
+export OPENCLAW_CONFIG_PATH=/tmp/openclaw-codex-sdk-smoke/openclaw.json
+export OPENCLAW_SKIP_CHANNELS=1
+export CLAWDBOT_SKIP_CHANNELS=1
+
+openclaw plugins install --link .
 openclaw config set plugins.allow '["codex-sdk"]'
+openclaw config set plugins.entries.codex-sdk.config.cwd "$PWD"
+openclaw config set gateway.mode local
 openclaw codex configure
 openclaw codex config validate
 openclaw codex doctor --record
+openclaw codex status --json
 ```
 
-`openclaw codex configure` sets `acp.backend = "codex-sdk"` and creates a
-first-class `agents.list[]` entry for the `codex` agent. Once configured, normal
-OpenClaw agent surfaces can route directly to Codex.
-
-## Standalone Gateway Smoke
-
-Use the repo smoke script for a clean, isolated profile that does not touch the
-default Gateway or any existing Wanda/AirLock profile:
-
-```bash
-pnpm smoke:codex-sdk
-```
-
-The default smoke validates config, configures the plugin in a temporary
-profile, runs doctor, and reads plugin status. It does not start a model turn.
-
-To prove the full user-facing loop, opt into the live smoke:
-
-```bash
-OPENCLAW_CODEX_LIVE_SMOKE=1 pnpm smoke:codex-sdk
-```
-
-The live smoke starts a loopback-only standalone Gateway, sends one OpenClaw
-`agent` RPC through the `codex` ACP agent, requires Codex to call the
-`openclaw_status` MCP backchannel, verifies that the tool completed, and then
-shuts the Gateway down.
-
-Useful overrides:
-
-```bash
-OPENCLAW_CODEX_SMOKE_PORT=19891
-OPENCLAW_CODEX_SMOKE_ROOT=/tmp/openclaw-codex-sdk-smoke
-OPENCLAW_CODEX_SMOKE_CWD=/path/to/workspace
-OPENCLAW_CODEX_SMOKE_KEEP_STATE=1
-OPENCLAW_CODEX_SMOKE_VERBOSE=1
-```
+That proves install, configuration, doctor, and status without starting a model
+turn.
 
 ## Manual Standalone Gateway
 
-This mirrors the live smoke but leaves the Gateway available for manual testing:
+This leaves a local Gateway running for manual Control UI/chat testing:
 
 ```bash
 export OPENCLAW_STATE_DIR=/tmp/openclaw-codex-standalone/state
@@ -122,9 +142,10 @@ export OPENCLAW_CONFIG_PATH=/tmp/openclaw-codex-standalone/openclaw.json
 export OPENCLAW_SKIP_CHANNELS=1
 export CLAWDBOT_SKIP_CHANNELS=1
 
-openclaw plugins install --link ./extensions/codex-sdk
+openclaw plugins install --link .
 openclaw config set plugins.allow '["codex-sdk"]'
 openclaw config set plugins.entries.codex-sdk.config.cwd "$PWD"
+openclaw config set gateway.mode local
 openclaw codex configure
 openclaw config set 'agents.list[0].runtime.acp.cwd' "$PWD"
 openclaw codex config validate
@@ -132,17 +153,21 @@ openclaw codex config validate
 openclaw gateway run --port 19891 --auth none --bind loopback --compact
 ```
 
-From another terminal:
+For a CLI-side live SDK proof without binding a chat session:
 
 ```bash
-openclaw gateway call agent \
-  --url ws://127.0.0.1:19891 \
-  --token smoke \
-  --expect-final \
-  --timeout 300000 \
-  --json \
-  --params '{"agentId":"codex","sessionKey":"agent:codex:main","message":"Use openclaw_status, then reply with STANDALONE_CODEX_GATEWAY_OK."}'
+openclaw codex run --cwd "$PWD" --json \
+  'Use openclaw_status through the injected MCP backchannel, then reply with STANDALONE_CODEX_GATEWAY_OK.'
 ```
+
+For Control UI chat testing, open a session such as `agent:codex:main` with an
+admin-scoped Control UI token, bind the thread once with:
+
+```text
+/acp spawn codex --thread here --cwd /path/to/workspace
+```
+
+Then send normal chat turns in that same session.
 
 `--auth none` should only be used on loopback test gateways.
 
@@ -158,7 +183,7 @@ The plugin injects an MCP server into SDK-backed Codex turns as
 The generated backchannel is approved in Codex config because SDK turns are
 non-interactive. OpenClaw still enforces the actual safety boundary:
 
-- read methods are limited to the configured `backchannel.readMethods`
+- read methods are limited to configured `backchannel.readMethods`
 - proposal writes are limited to safe proposal methods by default
 - broader Gateway writes require `backchannel.allowedMethods`
 - write/admin calls require the token named by
@@ -166,16 +191,14 @@ non-interactive. OpenClaw still enforces the actual safety boundary:
 
 ## Release Checks
 
-Before publishing this plugin, run:
+Before publishing:
 
 ```bash
-pnpm smoke:codex-sdk
-OPENCLAW_CODEX_LIVE_SMOKE=1 pnpm smoke:codex-sdk
-pnpm exec vitest run extensions/codex-sdk/src/*.test.ts src/commands/agent.acp.test.ts
-pnpm exec tsgo --noEmit
-pnpm build:strict-smoke
+npm test
+npm run typecheck
+npm run smoke
+OPENCLAW_CODEX_LIVE_SMOKE=1 npm run smoke
+npm run pack:check
 ```
 
-The plugin package and manifest carry the standalone version
-`2026.5.1`. Root release notes are tracked in `CHANGELOG.md` under
-`Unreleased`.
+The plugin package and manifest carry the standalone version `2026.5.1`.

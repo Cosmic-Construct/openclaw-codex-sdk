@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const tempDirs: string[] = [];
 const children: ChildProcessWithoutNullStreams[] = [];
-const serverPath = path.resolve("extensions/codex-sdk/src/backchannel-server.mjs");
+const serverPath = path.resolve("src/backchannel-server.mjs");
 
 async function createTempStateDir(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-backchannel-test-"));

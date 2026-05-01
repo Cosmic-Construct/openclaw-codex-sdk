@@ -1,4 +1,4 @@
-import type { AcpRuntimeEvent } from "openclaw/plugin-sdk/acpx";
+import type { AcpRuntimeEvent } from "openclaw/plugin-sdk/acp-runtime-backend";
 import type {
   CodexNativeStatus,
   CodexProposalExecutionResult,

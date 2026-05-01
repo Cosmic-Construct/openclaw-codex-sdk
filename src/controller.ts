@@ -1,4 +1,5 @@
-import type { AcpRuntimeEvent, PluginLogger } from "openclaw/plugin-sdk/acpx";
+import type { AcpRuntimeEvent } from "openclaw/plugin-sdk/acp-runtime-backend";
+import type { PluginLogger } from "openclaw/plugin-sdk/core";
 import {
   CODEX_SDK_BACKEND_ID,
   type ResolvedCodexSdkPluginConfig,

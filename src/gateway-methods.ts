@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/acpx";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import {
   getCodexControllerContext,
   isProposalStatus,

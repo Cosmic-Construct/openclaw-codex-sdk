@@ -1,4 +1,4 @@
-import type { OpenClawPluginConfigSchema } from "openclaw/plugin-sdk/acpx";
+import type { OpenClawPluginConfigSchema } from "openclaw/plugin-sdk/core";
 import {
   DEFAULT_CODEX_BACKCHANNEL_ALLOWED_METHODS,
   DEFAULT_CODEX_BACKCHANNEL_MAX_PAYLOAD_BYTES,
@@ -169,7 +169,7 @@ export function resolveCodexSdkPluginConfig(params: {
   return {
     ...config,
     cwd: config.cwd ?? params.workspaceDir,
-    inheritEnv: config.inheritEnv ?? true,
+    inheritEnv: config.inheritEnv ?? false,
     skipGitRepoCheck: config.skipGitRepoCheck ?? false,
     sandboxMode: config.sandboxMode ?? DEFAULT_SANDBOX_MODE,
     defaultRoute,

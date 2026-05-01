@@ -1,18 +1,18 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { AcpRuntimeError } from "openclaw/plugin-sdk/acpx";
-import type {
-  AcpRuntime,
-  AcpRuntimeCapabilities,
-  AcpRuntimeDoctorReport,
-  AcpRuntimeEnsureInput,
-  AcpRuntimeEvent,
-  AcpRuntimeHandle,
-  AcpRuntimeStatus,
-  AcpRuntimeTurnInput,
-  PluginLogger,
-} from "openclaw/plugin-sdk/acpx";
+import {
+  AcpRuntimeError,
+  type AcpRuntime,
+  type AcpRuntimeCapabilities,
+  type AcpRuntimeDoctorReport,
+  type AcpRuntimeEnsureInput,
+  type AcpRuntimeEvent,
+  type AcpRuntimeHandle,
+  type AcpRuntimeStatus,
+  type AcpRuntimeTurnInput,
+} from "openclaw/plugin-sdk/acp-runtime-backend";
+import type { PluginLogger } from "openclaw/plugin-sdk/core";
 import {
   CODEX_SDK_BACKEND_ID,
   CODEX_SDK_INSTALL_COMMAND,

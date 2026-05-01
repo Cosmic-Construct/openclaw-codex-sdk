@@ -10,7 +10,7 @@ describe("codex-sdk config", () => {
 
     expect(config).toMatchObject({
       cwd: "/tmp/workspace",
-      inheritEnv: true,
+      inheritEnv: false,
       skipGitRepoCheck: false,
       sandboxMode: "workspace-write",
       defaultRoute: "default",

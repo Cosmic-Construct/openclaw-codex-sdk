@@ -6,8 +6,8 @@
   `@openai/codex-sdk`.
 - Added first-class Codex ACP routes for default, fast, deep, review, test,
   refactor, docs, ship, and worker workflows.
-- Added Gateway RPC methods, `/codex` chat commands, `openclaw codex` CLI
-  commands, and a Control UI Codex tab.
+- Added Gateway RPC methods, `/codex-sdk` chat commands, `openclaw codex` CLI
+  commands, and a Control UI descriptor.
 - Added persistent session/event state, replay, export, compatibility records,
   and proposal inbox execution.
 - Added a bidirectional MCP backchannel so Codex can read OpenClaw status,
@@ -15,3 +15,7 @@
 - Added isolated smoke coverage for config, doctor, status, and optional live
   end-to-end Gateway turns.
 - Added effective model and reasoning visibility for routes and sessions.
+- Switched public imports to `openclaw/plugin-sdk/core` and
+  `openclaw/plugin-sdk/acp-runtime-backend`.
+- Hardened Codex subprocess environment handling: `inheritEnv` now defaults to
+  `false`, inherited secrets are redacted, and explicit `env` remains opt-in.

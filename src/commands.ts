@@ -1,5 +1,6 @@
 import path from "node:path";
-import type { AcpRuntimeEvent, OpenClawPluginApi } from "openclaw/plugin-sdk/acpx";
+import type { AcpRuntimeEvent } from "openclaw/plugin-sdk/acp-runtime-backend";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import {
   buildCodexEnabledConfig,
   getCodexController,
@@ -35,21 +36,21 @@ export { registerCodexGatewayMethods } from "./gateway-methods.js";
 
 const CODEX_HELP = [
   "Codex SDK commands:",
-  "- /codex status",
-  "- /codex routes",
-  "- /codex sessions [limit]",
-  "- /codex events <session-key> [limit]",
-  "- /codex export <session-key> [markdown|json]",
-  "- /codex inbox [limit]",
-  "- /codex accept <proposal-id>",
-  "- /codex dismiss <proposal-id>",
-  "- /codex execute <proposal-id> [route]",
-  "- /codex doctor",
+  "- /codex-sdk status",
+  "- /codex-sdk routes",
+  "- /codex-sdk sessions [limit]",
+  "- /codex-sdk events <session-key> [limit]",
+  "- /codex-sdk export <session-key> [markdown|json]",
+  "- /codex-sdk inbox [limit]",
+  "- /codex-sdk accept <proposal-id>",
+  "- /codex-sdk dismiss <proposal-id>",
+  "- /codex-sdk execute <proposal-id> [route]",
+  "- /codex-sdk doctor",
 ].join("\n");
 
 export function registerCodexNativeCommand(api: OpenClawPluginApi): void {
   api.registerCommand({
-    name: "codex",
+    name: "codex-sdk",
     description: "Inspect and manage the native Codex SDK runtime.",
     acceptsArgs: true,
     handler: async (ctx) => {
@@ -293,13 +294,17 @@ export function registerCodexCli(api: OpenClawPluginApi): void {
         .description("Enable Codex SDK as OpenClaw's ACP runtime backend")
         .option("--json", "print JSON")
         .action(async (opts: JsonOption) => {
-          const current = api.runtime.config.loadConfig();
           const pluginConfig = resolveCodexSdkPluginConfig({
             rawConfig: api.pluginConfig,
             workspaceDir,
           });
-          const next = buildCodexEnabledConfig(current, pluginConfig);
-          await api.runtime.config.writeConfigFile(next);
+          await api.runtime.config.mutateConfigFile({
+            afterWrite: { mode: "restart", reason: "codex-sdk ACP backend configured" },
+            mutate: (draft) => {
+              const next = buildCodexEnabledConfig(draft, pluginConfig);
+              replaceConfigDraft(draft, next);
+            },
+          });
           await printResult(
             {
               backend: CODEX_SDK_BACKEND_ID,
@@ -377,4 +382,11 @@ function writeRuntimeEvent(event: AcpRuntimeEvent): void {
   if (event.type === "error") {
     console.error(event.message);
   }
+}
+
+function replaceConfigDraft(target: Record<string, unknown>, source: Record<string, unknown>) {
+  for (const key of Object.keys(target)) {
+    delete target[key];
+  }
+  Object.assign(target, source);
 }

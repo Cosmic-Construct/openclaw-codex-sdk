@@ -34,6 +34,33 @@ const BACKCHANNEL_SERVER_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "backchannel-server.mjs",
 );
+const MINIMAL_CODEX_ENV_KEYS = [
+  "APPDATA",
+  "ComSpec",
+  "HOME",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "LOCALAPPDATA",
+  "LOGNAME",
+  "PATH",
+  "PATHEXT",
+  "SHELL",
+  "SystemRoot",
+  "TEMP",
+  "TERM",
+  "TMP",
+  "TMPDIR",
+  "TZ",
+  "USER",
+  "USERPROFILE",
+  "WINDIR",
+  "XDG_CACHE_HOME",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+] as const;
+const SECRET_ENV_NAME_PATTERN =
+  /(AUTH|COOKIE|CREDENTIAL|KEY|PASS|PASSWORD|PRIVATE|PROXY|SECRET|SESSION|TOKEN)/i;
 
 export async function loadCodexSdk(): Promise<CodexSdkModule> {
   const specifier = "@openai/codex-sdk";
@@ -175,13 +202,17 @@ function buildBackchannelServerConfig(
 }
 
 function resolveEnv(config: ResolvedCodexSdkPluginConfig): Record<string, string> | undefined {
-  if (config.inheritEnv && !config.env) {
-    return undefined;
-  }
   const env: Record<string, string> = {};
   if (config.inheritEnv) {
     for (const [key, value] of Object.entries(process.env)) {
-      if (value !== undefined) {
+      if (value !== undefined && !SECRET_ENV_NAME_PATTERN.test(key)) {
+        env[key] = value;
+      }
+    }
+  } else {
+    for (const key of MINIMAL_CODEX_ENV_KEYS) {
+      const value = process.env[key];
+      if (value !== undefined && !SECRET_ENV_NAME_PATTERN.test(key)) {
         env[key] = value;
       }
     }

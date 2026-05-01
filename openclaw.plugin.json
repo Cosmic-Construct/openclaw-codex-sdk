@@ -180,6 +180,17 @@
       "help": "Optional environment variable name used as the SDK API key source.",
       "sensitive": true,
       "advanced": true
+    },
+    "inheritEnv": {
+      "label": "Inherit Environment",
+      "help": "Defaults to off. When enabled, inherited secret-looking environment variables are redacted before Codex is spawned.",
+      "advanced": true
+    },
+    "env": {
+      "label": "Explicit Environment",
+      "help": "Intentional environment variables to pass to Codex SDK subprocesses.",
+      "sensitive": true,
+      "advanced": true
     }
   }
 }

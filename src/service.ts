@@ -1,11 +1,14 @@
+import type { AcpRuntime } from "openclaw/plugin-sdk/acp-runtime-backend";
+import {
+  registerAcpRuntimeBackend,
+  unregisterAcpRuntimeBackend,
+} from "openclaw/plugin-sdk/acp-runtime-backend";
 import type {
-  AcpRuntime,
+  OpenClawConfig,
   OpenClawPluginService,
   OpenClawPluginServiceContext,
   PluginLogger,
-} from "openclaw/plugin-sdk/acpx";
-import { registerAcpRuntimeBackend, unregisterAcpRuntimeBackend } from "openclaw/plugin-sdk/acpx";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+} from "openclaw/plugin-sdk/core";
 import { clearActiveCodexController, setActiveCodexController } from "./active.js";
 import { CODEX_SDK_BACKEND_ID, resolveCodexSdkPluginConfig } from "./config.js";
 import { createCodexNativeController, type CodexNativeController } from "./controller.js";

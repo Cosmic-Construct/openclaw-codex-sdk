@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { AcpRuntimeEvent } from "openclaw/plugin-sdk/acpx";
+import type { AcpRuntimeEvent } from "openclaw/plugin-sdk/acp-runtime-backend";
 
 export type CodexSessionRecord = {
   sessionKey: string;

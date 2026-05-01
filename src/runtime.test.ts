@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runAcpRuntimeAdapterContract } from "../../../src/acp/runtime/adapter-contract.testkit.js";
-import { AcpRuntimeError } from "../../../src/acp/runtime/errors.js";
+import { AcpRuntimeError } from "openclaw/plugin-sdk/acp-runtime-backend";
 import { resolveCodexSdkPluginConfig, type ResolvedCodexSdkPluginConfig } from "./config.js";
 import { CodexSdkRuntime } from "./runtime.js";
 
@@ -137,19 +136,40 @@ function createRuntime(
 }
 
 describe("CodexSdkRuntime", () => {
-  it("passes the shared ACP adapter contract suite", async () => {
-    await runAcpRuntimeAdapterContract({
-      createRuntime: async () => createRuntime().runtime,
-      agentId: "codex",
-      successPrompt: "contract-pass",
-      includeControlChecks: false,
-      assertSuccessEvents: (events) => {
-        expect(events.some((event) => event.type === "text_delta" && event.text === "done")).toBe(
-          true,
-        );
-        expect(events.some((event) => event.type === "done")).toBe(true);
-      },
+  it("creates, streams, reports, and closes a persistent ACP session", async () => {
+    const { runtime } = createRuntime();
+    const handle = await runtime.ensureSession({
+      sessionKey: "agent:codex:acp:contract",
+      agent: "codex",
+      mode: "persistent",
     });
+
+    expect(handle).toMatchObject({
+      sessionKey: "agent:codex:acp:contract",
+      backend: "codex-sdk",
+      runtimeSessionName: "agent:codex:acp:contract",
+    });
+
+    const events = [];
+    for await (const event of runtime.runTurn({
+      handle,
+      text: "contract-pass",
+      mode: "prompt",
+      requestId: "req-contract",
+    })) {
+      events.push(event);
+    }
+
+    expect(events.some((event) => event.type === "text_delta" && event.text === "done")).toBe(
+      true,
+    );
+    expect(events.some((event) => event.type === "done")).toBe(true);
+    await expect(runtime.getStatus({ handle })).resolves.toMatchObject({
+      backendSessionId: "thread-1",
+    });
+
+    await runtime.close({ handle });
+    await expect(runtime.getStatus({ handle })).rejects.toBeInstanceOf(AcpRuntimeError);
   });
 
   it("maps Codex SDK streamed items into ACP events and status identifiers", async () => {
@@ -305,6 +325,82 @@ describe("CodexSdkRuntime", () => {
         }),
       }),
     );
+  });
+
+  it("does not pass gateway or provider secrets through the SDK process env by default", async () => {
+    const originalGithubToken = process.env.GITHUB_TOKEN;
+    const originalOpenAiKey = process.env.OPENAI_API_KEY;
+    process.env.GITHUB_TOKEN = "ghs_should-not-leak";
+    process.env.OPENAI_API_KEY = "sk-should-not-leak";
+    try {
+      const fake = new FakeCodex();
+      const { runtime } = createRuntime(fake);
+
+      await runtime.probeAvailability();
+
+      expect(fake.constructorOptions[0]).toEqual(
+        expect.objectContaining({
+          env: expect.not.objectContaining({
+            GITHUB_TOKEN: "ghs_should-not-leak",
+            OPENAI_API_KEY: "sk-should-not-leak",
+          }),
+        }),
+      );
+    } finally {
+      if (originalGithubToken === undefined) {
+        delete process.env.GITHUB_TOKEN;
+      } else {
+        process.env.GITHUB_TOKEN = originalGithubToken;
+      }
+      if (originalOpenAiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = originalOpenAiKey;
+      }
+    }
+  });
+
+  it("redacts inherited secrets while preserving explicit env and apiKeyEnv", async () => {
+    const originalGithubToken = process.env.GITHUB_TOKEN;
+    const originalOpenAiKey = process.env.OPENAI_API_KEY;
+    process.env.GITHUB_TOKEN = "ghs_inherited-secret";
+    process.env.OPENAI_API_KEY = "sk-explicit-api-key";
+    try {
+      const fake = new FakeCodex();
+      const { runtime } = createRuntime(fake, {
+        inheritEnv: true,
+        apiKeyEnv: "OPENAI_API_KEY",
+        env: {
+          GITHUB_TOKEN: "explicit-github-token",
+          OPENCLAW_CODEX_CUSTOM: "present",
+        },
+      });
+
+      await runtime.probeAvailability();
+
+      expect(fake.constructorOptions[0]).toEqual(
+        expect.objectContaining({
+          apiKey: "sk-explicit-api-key",
+          env: expect.objectContaining({
+            GITHUB_TOKEN: "explicit-github-token",
+            OPENCLAW_CODEX_CUSTOM: "present",
+          }),
+        }),
+      );
+      expect((fake.constructorOptions[0] as { env?: Record<string, string> }).env?.OPENAI_API_KEY)
+        .toBeUndefined();
+    } finally {
+      if (originalGithubToken === undefined) {
+        delete process.env.GITHUB_TOKEN;
+      } else {
+        process.env.GITHUB_TOKEN = originalGithubToken;
+      }
+      if (originalOpenAiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = originalOpenAiKey;
+      }
+    }
   });
 
   it("can switch a live session to another route", async () => {

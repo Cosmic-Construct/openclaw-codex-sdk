@@ -20,12 +20,12 @@ Recommended topics:
 openclaw, codex, codex-sdk, acp, mcp, agent-runtime
 ```
 
-## OpenClaw PR Draft
+## ClawHub Submission Draft
 
 Title:
 
 ```text
-Add native Codex SDK runtime plugin
+Add native Codex SDK runtime for OpenClaw
 ```
 
 Body:
@@ -35,18 +35,24 @@ Body:
 
 - Adds a standalone `codex-sdk` plugin powered by `@openai/codex-sdk`.
 - Registers a first-class `codex-sdk` ACP backend with Codex route aliases.
-- Adds Codex CLI, chat command, Gateway RPC, Control UI, session replay/export,
-  proposal inbox, compatibility, and smoke-test surfaces.
+- Adds Codex CLI, `/codex-sdk` chat command, Gateway RPC, Control UI descriptor, session
+  replay/export, proposal inbox, compatibility, and smoke-test surfaces.
 - Adds an MCP backchannel so Codex can read OpenClaw status, create proposals,
   and call explicitly allowlisted Gateway methods.
+- Uses only public OpenClaw plugin SDK subpaths:
+  `openclaw/plugin-sdk/core` and `openclaw/plugin-sdk/acp-runtime-backend`.
+- Defaults `inheritEnv` to false and redacts secret-looking inherited env names
+  before spawning Codex.
 
 ## Verification
 
-- `pnpm exec tsgo --noEmit`
-- `pnpm exec vitest run extensions/codex-sdk/src/*.test.ts src/commands/agent.acp.test.ts src/gateway/method-scopes.test.ts src/gateway/server-methods/chat.directive-tags.test.ts ui/src/ui/views/codex.test.ts`
-- `pnpm smoke:codex-sdk`
-- `OPENCLAW_CODEX_LIVE_SMOKE=1 pnpm smoke:codex-sdk`
-- Manual Control UI proof: `/codex` shows `codex/default` with effective model/reasoning and live session records.
+- `npm test`
+- `npm run typecheck`
+- `npm run pack:check`
+- Isolated smoke commands from `README.md`
+- Live proof: `openclaw codex run --json ...` returns through the `codex-sdk`
+  runtime, calls the injected `openclaw_status` MCP tool, and reports
+  `OPENCLAW_CODEX_SDK_RUN_OK`.
 
 ## Notes
 
@@ -60,7 +66,7 @@ is intentionally configured.
 ```text
 Built a native Codex runtime for OpenClaw.
 
-It uses @openai/codex-sdk, adds a first-class codex-sdk ACP backend, persistent Codex sessions, Control UI + CLI + Gateway surfaces, route/model visibility, replay/export, proposal inbox execution, and an MCP backchannel so Codex and OpenClaw can talk both ways.
+It uses @openai/codex-sdk, adds a first-class codex-sdk ACP backend, persistent Codex sessions, CLI + Gateway + Control UI descriptor surfaces, route/model visibility, replay/export, proposal inbox execution, and an MCP backchannel so Codex and OpenClaw can talk both ways.
 
 Standalone, public, and built so anyone running OpenClaw can make Codex feel native.
 ```

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/acpx";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildCodexEnabledConfig,
@@ -139,13 +139,13 @@ describe("codex-sdk commands", () => {
         config: object;
       }) => Promise<{ text: string }>;
     };
-    expect(command.name).toBe("codex");
+    expect(command.name).toBe("codex-sdk");
     await expect(
       command.handler({
         args: "routes",
         channel: "test",
         isAuthorizedSender: true,
-        commandBody: "/codex routes",
+        commandBody: "/codex-sdk routes",
         config: {},
       }),
     ).resolves.toEqual({

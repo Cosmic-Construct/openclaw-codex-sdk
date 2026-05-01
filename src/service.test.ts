@@ -1,11 +1,12 @@
-import type { AcpRuntime, OpenClawPluginServiceContext } from "openclaw/plugin-sdk/acpx";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AcpRuntimeError } from "../../../src/acp/runtime/errors.js";
 import {
+  AcpRuntimeError,
   __testing,
   getAcpRuntimeBackend,
   requireAcpRuntimeBackend,
-} from "../../../src/acp/runtime/registry.js";
+  type AcpRuntime,
+} from "openclaw/plugin-sdk/acp-runtime";
+import type { OpenClawPluginServiceContext } from "openclaw/plugin-sdk/core";
 import { CODEX_SDK_BACKEND_ID } from "./config.js";
 import { createCodexSdkRuntimeService } from "./service.js";
 

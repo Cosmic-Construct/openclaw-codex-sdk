@@ -1,4 +1,4 @@
-import { AcpRuntimeError, type AcpRuntimeEvent } from "openclaw/plugin-sdk/acpx";
+import { AcpRuntimeError, type AcpRuntimeEvent } from "openclaw/plugin-sdk/acp-runtime-backend";
 import {
   CODEX_APPROVAL_POLICIES,
   CODEX_REASONING_EFFORTS,
